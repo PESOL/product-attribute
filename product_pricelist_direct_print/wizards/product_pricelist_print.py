@@ -38,8 +38,6 @@ class ProductPricelistPrint(models.TransientModel):
     )
     show_standard_price = fields.Boolean(string='Show Cost Price')
     show_sale_price = fields.Boolean(string='Show Sale Price')
-    show_category_name = fields.Boolean(string='Show Category Name')
-    hide_no_price = fields.Boolean(string='Hide Products Without Price')
     hide_pricelist_name = fields.Boolean(string='Hide Pricelist Name')
     order_field = fields.Selection([
         ('name', 'Name'),
@@ -68,6 +66,7 @@ class ProductPricelistPrint(models.TransientModel):
     @api.model
     def default_get(self, fields):
         res = super(ProductPricelistPrint, self).default_get(fields)
+        items = False
         if self.env.context.get('active_model') == 'product.template':
             res['product_tmpl_ids'] = [
                 (6, 0, self.env.context.get('active_ids', []))]
@@ -76,7 +75,10 @@ class ProductPricelistPrint(models.TransientModel):
             res['product_ids'] = [
                 (6, 0, self.env.context.get('active_ids', []))]
         elif self.env.context.get('active_model') == 'product.pricelist':
-            res['pricelist_id'] = self.env.context.get('active_id', False)
+            active_id = self.env.context.get('active_id', False)
+            res['pricelist_id'] = active_id
+            pricelist = self.env['product.pricelist'].browse(active_id)
+            items = pricelist.item_ids
         elif self.env.context.get('active_model') == 'res.partner':
             active_ids = self.env.context.get('active_ids', [])
             res['partner_ids'] = [(6, 0, active_ids)]
@@ -86,6 +88,7 @@ class ProductPricelistPrint(models.TransientModel):
         elif self.env.context.get('active_model') == 'product.pricelist.item':
             active_ids = self.env.context.get('active_ids', [])
             items = self.env['product.pricelist.item'].browse(active_ids)
+        if items:
             # Set pricelist if all the items belong to the same one
             if len(items.mapped('pricelist_id')) == 1:
                 res['pricelist_id'] = items[0].pricelist_id.id

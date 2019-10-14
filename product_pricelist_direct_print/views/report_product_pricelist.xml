@@ -89,15 +89,12 @@
                                 <t t-set="category_products"
                                    t-value="category_products.sorted(lambda x: x.default_code or '')"/>
                             </t>
-                            <tr t-if="category_products and o.show_category_name">
+                            <tr t-if="category_products">
                                 <td colspan="100">
                                     <strong t-field="category.name"/>
                                 </td>
                             </tr>
-                            <t t-foreach="category_products" t-as="product">
-                              <t t-set="pricelist_price"
-                                 t-value="product.with_context(pricelist=pricelist.id, date=o.date).price"/>
-                              <tr t-if="pricelist_price or not o.hide_no_price">
+                            <tr t-foreach="category_products" t-as="product">
                                 <td>
                                     <span t-field="product.display_name"/>
                                 </td>
@@ -108,10 +105,9 @@
                                     <span t-field="product.list_price"/>
                                 </td>
                                 <td t-if="pricelist" class="text-right">
-                                    <strong t-esc="pricelist_price"/>
+                                    <strong t-field="product.with_context(pricelist=pricelist.id, date=o.date).price"/>
                                 </td>
-                              </tr>
-                            </t>
+                            </tr>
                         </t>
                     </tbody>
                 </table>
