@@ -39,6 +39,16 @@ class ProductPricelistPrint(models.TransientModel):
     show_standard_price = fields.Boolean(string='Show Cost Price')
     show_sale_price = fields.Boolean(string='Show Sale Price')
     hide_pricelist_name = fields.Boolean(string='Hide Pricelist Name')
+    show_category_name = fields.Boolean(
+        string='Show Category Name')
+
+    show_only_pricelist_products = fields.Boolean(
+        string='Show Only Pricelist Products')
+    available_product_ids = fields.Many2many(
+        comodel_name='product.product',
+        string='Available Products',
+        compute='_compute_available_product_ids'
+    )
     order_field = fields.Selection([
         ('name', 'Name'),
         ('default_code', 'Internal Reference'),
@@ -51,6 +61,17 @@ class ProductPricelistPrint(models.TransientModel):
         help="If you enter an X number here, then, for each selected customer,"
              " the last X ordered products will be obtained for the report."
     )
+
+    @api.multi
+    @api.depends('pricelist_id', 'show_only_pricelist_products')
+    def _compute_available_product_ids(self):
+        for record in self.filtered(
+                lambda l: l.pricelist_id and l.show_only_pricelist_products):
+            record.available_product_ids = self.pricelist_id.item_ids.mapped(
+                'product_tmpl_id.product_variant_ids'
+            )
+
+
 
     @api.multi
     @api.depends('partner_ids')
@@ -66,7 +87,6 @@ class ProductPricelistPrint(models.TransientModel):
     @api.model
     def default_get(self, fields):
         res = super(ProductPricelistPrint, self).default_get(fields)
-        items = False
         if self.env.context.get('active_model') == 'product.template':
             res['product_tmpl_ids'] = [
                 (6, 0, self.env.context.get('active_ids', []))]
@@ -75,10 +95,7 @@ class ProductPricelistPrint(models.TransientModel):
             res['product_ids'] = [
                 (6, 0, self.env.context.get('active_ids', []))]
         elif self.env.context.get('active_model') == 'product.pricelist':
-            active_id = self.env.context.get('active_id', False)
-            res['pricelist_id'] = active_id
-            pricelist = self.env['product.pricelist'].browse(active_id)
-            items = pricelist.item_ids
+            res['pricelist_id'] = self.env.context.get('active_id', False)
         elif self.env.context.get('active_model') == 'res.partner':
             active_ids = self.env.context.get('active_ids', [])
             res['partner_ids'] = [(6, 0, active_ids)]
@@ -88,7 +105,6 @@ class ProductPricelistPrint(models.TransientModel):
         elif self.env.context.get('active_model') == 'product.pricelist.item':
             active_ids = self.env.context.get('active_ids', [])
             items = self.env['product.pricelist.item'].browse(active_ids)
-        if items:
             # Set pricelist if all the items belong to the same one
             if len(items.mapped('pricelist_id')) == 1:
                 res['pricelist_id'] = items[0].pricelist_id.id
