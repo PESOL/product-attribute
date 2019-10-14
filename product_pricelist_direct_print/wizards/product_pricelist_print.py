@@ -39,16 +39,6 @@ class ProductPricelistPrint(models.TransientModel):
     show_standard_price = fields.Boolean(string='Show Cost Price')
     show_sale_price = fields.Boolean(string='Show Sale Price')
     hide_pricelist_name = fields.Boolean(string='Hide Pricelist Name')
-    show_category_name = fields.Boolean(
-        string='Show Category Name')
-
-    show_only_pricelist_products = fields.Boolean(
-        string='Show Only Pricelist Products')
-    available_product_ids = fields.Many2many(
-        comodel_name='product.product',
-        string='Available Products',
-        compute='_compute_available_product_ids'
-    )
     order_field = fields.Selection([
         ('name', 'Name'),
         ('default_code', 'Internal Reference'),
@@ -61,17 +51,6 @@ class ProductPricelistPrint(models.TransientModel):
         help="If you enter an X number here, then, for each selected customer,"
              " the last X ordered products will be obtained for the report."
     )
-
-    @api.multi
-    @api.depends('pricelist_id', 'show_only_pricelist_products')
-    def _compute_available_product_ids(self):
-        for record in self.filtered(
-                lambda l: l.pricelist_id and l.show_only_pricelist_products):
-            record.available_product_ids = self.pricelist_id.item_ids.mapped(
-                'product_tmpl_id.product_variant_ids'
-            )
-
-
 
     @api.multi
     @api.depends('partner_ids')
